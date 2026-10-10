@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill-Swap — Open-Source AI Skill Matchmaker</title>
+<style>
+  :root{
+    --bg:#0c0e14; --panel:#151822; --panel2:#1b1f2c; --panel3:#222738; --border:#2a2f40;
+    --text:#f2f3f8; --muted:#97a0b8; --muted2:#6b7389;
+    --accent:#8b6bff; --accent-soft:#a68bff; --accent2:#2fe0c8;
+    --warn:#ffb020; --danger:#ff6b6b; --ok:#38e298;
+    --radius-lg:18px; --radius-md:12px; --radius-sm:8px;
+    --shadow-lg:0 20px 60px -20px rgba(0,0,0,.6);
+    --shadow-md:0 10px 30px -12px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(139,107,255,.14), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(47,224,200,.10), transparent 55%),
+      linear-gradient(180deg,#0c0e14,#0e1118 50%,#0c0e14);
+    color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent); color:white;}
+
+  /* ---------- Header ---------- */
+  header{
+    padding:22px 32px; display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40;
+    background:rgba(12,14,20,.82); backdrop-filter:blur(14px);
+  }
+  header .brand{display:flex; align-items:center; gap:13px;}
+  header .brand .logo{
+    width:42px; height:42px; border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:19px;
+    box-shadow:0 6px 18px -6px rgba(139,107,255,.6); color:#0c0e14;
+  }
+  header h1{font-size:20px; margin:0; letter-spacing:-.01em; font-weight:800;}
+  header p{margin:1px 0 0; color:var(--muted); font-size:12.5px;}
+  .header-right{display:flex; align-items:center; gap:10px;}
+  .icon-btn{
+    width:38px; height:38px; border-radius:10px; background:var(--panel2); border:1px solid var(--border);
+    color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:.15s;
+  }
+  .icon-btn:hover{color:var(--text); border-color:var(--accent);}
+  .user-chip{
+    display:flex; align-items:center; gap:9px; background:var(--panel2); border:1px solid var(--border);
+    padding:6px 14px 6px 6px; border-radius:999px; cursor:pointer;
+  }
+  .user-chip .av{
+    width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:#0c0e14;
+  }
+  .user-chip .uname{font-size:13px; font-weight:700;}
+
+  main{max-width:1100px; margin:0 auto; padding:30px 24px 70px;}
+
+  /* ---------- Tabs ---------- */
+  .tabs{display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;}
+  .tab{
+    padding:10px 18px; border-radius:11px; background:var(--panel); border:1px solid var(--border);
+    color:var(--muted); cursor:pointer; font-size:14px; font-weight:700; transition:.15s;
+    display:flex; align-items:center; gap:7px;
+  }
+  .tab:hover{color:var(--text); border-color:var(--accent-soft);}
+  .tab.active{
+    background:linear-gradient(135deg,var(--accent),#6f4dff); color:white; border-color:transparent;
+    box-shadow:0 8px 20px -8px rgba(139,107,255,.7);
+  }
+
+  /* ---------- Cards ---------- */
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:26px; margin-bottom:18px; box-shadow:var(--shadow-md);
+  }
+  .card h2{margin:0 0 4px; font-size:17px; font-weight:800; letter-spacing:-.01em;}
+  .card .sub{color:var(--muted); font-size:13.5px; margin-bottom:18px; line-height:1.5;}
+
+  label{display:block; font-size:12px; color:var(--muted); margin:14px 0 6px; font-weight:700; letter-spacing:.02em; text-transform:uppercase;}
+  input[type=text], input[type=email], input[type=password], input[type=date], input[type=time], textarea, select{
+    width:100%; padding:12px 14px; background:var(--panel2); border:1px solid var(--border);
+    border-radius:10px; color:var(--text); font-size:14.5px; transition:.15s; font-family:inherit;
+  }
+  input::placeholder{color:var(--muted2);}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,107,255,.18);}
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .hint{font-size:12px; color:var(--muted2); margin-top:6px;}
+
+  button{
+    background:linear-gradient(135deg,var(--accent),#6f4dff); color:white; border:none; padding:12px 20px;
+    border-radius:10px; font-weight:700; font-size:14.5px; cursor:pointer; margin-top:18px; transition:.15s;
+    box-shadow:0 8px 20px -10px rgba(139,107,255,.7);
+  }
+  button:hover{filter:brightness(1.08); transform:translateY(-1px);}
+  button:active{transform:translateY(0);}
+  button:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+  button.ghost{background:transparent; border:1px solid var(--border); color:var(--text); box-shadow:none;}
+  button.ghost:hover{border-color:var(--accent-soft);}
+  button.small{padding:8px 14px; font-size:12.5px; margin-top:0;}
+  button.full{width:100%;}
+  button.danger{background:linear-gradient(135deg,#ff6b6b,#e14b4b); box-shadow:0 8px 20px -10px rgba(255,107,107,.6);}
+
+  /* ---------- Toggle ---------- */
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 0;}
+  .toggle-row .ttitle{font-size:14px; font-weight:700;}
+  .toggle-row .tdesc{font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .switch{position:relative; width:46px; height:26px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .slider{position:absolute; inset:0; background:var(--panel3); border:1px solid var(--border); border-radius:999px; cursor:pointer; transition:.2s;}
+  .slider:before{content:""; position:absolute; width:18px; height:18px; left:3px; top:2.5px; background:var(--muted); border-radius:50%; transition:.2s;}
+  .switch input:checked + .slider{background:linear-gradient(135deg,var(--accent),#6f4dff); border-color:transparent;}
+  .switch input:checked + .slider:before{transform:translateX(20px); background:white;}
+
+  /* ---------- People grid ---------- */
+  .people-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px;}
+  .person{
+    background:var(--panel2); border:1px solid var(--border); border-radius:var(--radius-md); padding:17px;
+    cursor:pointer; transition:.15s; position:relative; overflow:hidden;
+  }
+  .person:hover{border-color:var(--accent-soft); transform:translateY(-2px); box-shadow:var(--shadow-md);}
+  .person.selected{border-color:var(--accent2); box-shadow:0 0 0 1.5px var(--accent2);}
+  .person-head{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .avatar{
+    width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:14px; color:#0c0e14; flex-shrink:0;
+  }
+  .person .name{font-weight:800; font-size:15px;}
+  .section-label{font-size:10.5px; color:var(--muted2); font-weight:800; letter-spacing:.06em; margin-top:10px;}
+  .tag-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;}
+  .tag{
+    font-size:11.5px; padding:4px 10px; border-radius:999px; background:rgba(139,107,255,.14); color:#cbb8ff;
+    border:1px solid rgba(139,107,255,.25); font-weight:600;
+  }
+  .tag.learn{background:rgba(47,224,200,.12); color:#8ff0e3; border-color:rgba(47,224,200,.25);}
+
+  /* ---------- Match cards ---------- */
+  .match-card{
+    background:var(--panel2); border:1px solid var(--border); border-radius:var(--radius-md); padding:18px 20px;
+    margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; gap:16px;
+    transition:.15s;
+  }
+  .match-card:hover{border-color:var(--accent-soft);}
+  .match-left{flex:1; display:flex; align-items:center; gap:13px; min-width:0;}
+  .match-info{min-width:0;}
+  .match-name{font-weight:800; font-size:15px;}
+  .match-reason{color:var(--muted); font-size:12.5px; margin-top:4px; line-height:1.5;}
+  .match-reason b{color:var(--text); font-weight:700;}
+  .score-ring{
+    width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:13px; flex-shrink:0;
+    background:conic-gradient(var(--accent2) calc(var(--pct)*1%), var(--panel3) 0);
+  }
+  .score-ring span{
+    background:var(--panel2); width:44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .status-pill{font-size:11.5px; padding:5px 12px; border-radius:999px; font-weight:800; white-space:nowrap;}
+  .status-pending{background:rgba(255,176,32,.15); color:var(--warn);}
+  .status-sent{background:rgba(56,226,152,.15); color:var(--ok);}
+  .empty{color:var(--muted); font-size:13.5px; text-align:center; padding:40px 20px; line-height:1.6;}
+
+  .engine-pill{
+    display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:800; padding:5px 12px;
+    border-radius:999px; margin-bottom:16px; letter-spacing:.02em;
+  }
+  .engine-local{background:rgba(139,107,255,.14); color:#cbb8ff; border:1px solid rgba(139,107,255,.3);}
+  .engine-gemma{background:rgba(47,224,200,.14); color:#8ff0e3; border:1px solid rgba(47,224,200,.3);}
+  .dot{width:6px; height:6px; border-radius:50%; background:currentColor;}
+
+  footer{text-align:center; color:var(--muted2); font-size:12px; padding:24px; border-top:1px solid var(--border);}
+  footer a{color:var(--accent2); text-decoration:none;}
+
+  /* ---------- Auth screens ---------- */
+  .auth-wrap{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .auth-card{
+    width:100%; max-width:420px; background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:36px 32px; box-shadow:var(--shadow-lg);
+  }
+  .auth-logo{
+    width:52px; height:52px; border-radius:14px; margin:0 auto 18px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:23px; color:#0c0e14;
+    box-shadow:0 10px 26px -8px rgba(139,107,255,.6);
+  }
+  .auth-title{font-size:21px; font-weight:800; text-align:center; letter-spacing:-.01em;}
+  .auth-sub{font-size:13.5px; color:var(--muted); text-align:center; margin-top:6px; margin-bottom:26px; line-height:1.5;}
+  .code-boxes{display:flex; gap:9px; justify-content:center; margin:6px 0 4px;}
+  .code-boxes input{
+    width:44px; height:52px; text-align:center; font-size:20px; font-weight:800; padding:0;
+  }
+  .demo-code-box{
+    margin-top:18px; padding:14px 16px; background:var(--panel3); border:1px dashed var(--accent-soft);
+    border-radius:10px; text-align:center;
+  }
+  .demo-code-box .lbl{font-size:10.5px; color:var(--muted2); font-weight:800; letter-spacing:.06em;}
+  .demo-code-box .code{font-size:24px; font-weight:800; letter-spacing:.12em; color:var(--accent2); margin-top:4px;}
+  .auth-error{color:var(--danger); font-size:12.5px; margin-top:10px; text-align:center; min-height:16px;}
+  .back-link{display:block; text-align:center; font-size:13px; color:var(--muted); margin-top:16px; cursor:pointer; text-decoration:underline;}
+  .back-link:hover{color:var(--text);}
+
+  /* ---------- Settings modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(5,6,10,.65); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal{
+    width:100%; max-width:460px; background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:26px; box-shadow:var(--shadow-lg);
+  }
+  .modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
+  .modal-head h3{margin:0; font-size:16.5px; font-weight:800;}
+  .close-x{cursor:pointer; color:var(--muted); font-size:20px; line-height:1; padding:4px;}
+  .close-x:hover{color:var(--text);}
+
+  /* ---------- Swap flow ---------- */
+  input[type=date], input[type=time]{color-scheme:dark;}
+  textarea{resize:vertical; min-height:84px; line-height:1.5;}
+  .icon-btn{position:relative;}
+  .badge, .count{
+    min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:var(--danger); color:#fff;
+    font-size:11px; font-weight:800; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .badge{position:absolute; top:-6px; right:-6px; border:2px solid var(--bg);}
+  .badge[hidden], .count[hidden]{display:none;}
+  .you-chip{
+    font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:999px; margin-left:6px; vertical-align:middle;
+    background:rgba(47,224,200,.14); color:#8ff0e3; border:1px solid rgba(47,224,200,.3);
+  }
+  .rel{color:var(--muted2); font-weight:500;}
+  .muted{color:var(--muted2);}
+  .status-declined{background:rgba(255,107,107,.15); color:var(--danger);}
+  .match-actions{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+  .swap-h{font-size:14px; font-weight:800; margin:22px 0 10px;}
+  .swap-h:first-child{margin-top:0;}
+  .modal.wide{max-width:520px; max-height:calc(100vh - 40px); overflow-y:auto;}
+  .modal .sub{color:var(--muted); font-size:13.5px; line-height:1.5; margin:4px 0 0;}
+  .swap-terms{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:16px 0 4px;}
+  .swap-terms .box{background:var(--panel2); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px 14px;}
+  .swap-terms .lbl{font-size:12.5px; color:var(--muted); font-weight:700;}
+  .partner-card{
+    display:flex; align-items:center; gap:13px; padding:14px; margin-top:16px;
+    background:var(--panel2); border:1px solid var(--border); border-radius:var(--radius-md);
+  }
+  .partner-card a, .session-box a{color:var(--accent2); text-decoration:none;}
+  .quote{
+    margin-top:14px; padding:12px 14px; border-left:3px solid var(--accent); background:var(--panel2);
+    border-radius:0 var(--radius-sm) var(--radius-sm) 0; color:var(--muted); font-size:13.5px; line-height:1.5;
+  }
+  .state-icon{
+    width:58px; height:58px; border-radius:50%; margin:6px auto 14px; display:flex;
+    align-items:center; justify-content:center; font-size:26px; font-weight:800;
+  }
+  .state-icon.ok{background:rgba(56,226,152,.15); color:var(--ok);}
+  .state-icon.wait{background:rgba(255,176,32,.15); color:var(--warn);}
+  .state-icon.no{background:rgba(255,107,107,.15); color:var(--danger);}
+  .state-title{font-size:19px; font-weight:800; text-align:center; letter-spacing:-.01em;}
+  .state-sub{color:var(--muted); font-size:13.5px; text-align:center; margin-top:6px; line-height:1.5;}
+  .btn-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .seg{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .seg button{
+    margin-top:0; background:var(--panel2); border:1px solid var(--border); color:var(--muted);
+    box-shadow:none; padding:10px 8px; font-size:13px;
+  }
+  .seg button.on{border-color:var(--accent); color:var(--text); background:rgba(139,107,255,.16);}
+  .session-box{margin-top:16px; padding:16px; background:var(--panel2); border:1px solid var(--accent2); border-radius:var(--radius-md);}
+  .session-box .lbl{font-size:12.5px; color:var(--muted); font-weight:700;}
+  .session-when{font-size:16px; font-weight:800; margin-top:4px;}
+  .toast-wrap{position:fixed; right:18px; bottom:18px; z-index:200; display:flex; flex-direction:column; gap:10px;}
+  .toast{
+    display:flex; align-items:center; gap:12px; background:var(--panel3); border:1px solid var(--border);
+    border-radius:var(--radius-md); padding:12px 14px; font-size:13.5px; font-weight:600;
+    box-shadow:var(--shadow-lg); max-width:360px;
+  }
+  .toast button{margin:0; flex-shrink:0;}
+
+  @media (max-width:560px){
+    .swap-terms{grid-template-columns:1fr;}
+  }
+
+  @media (max-width:560px){
+    .row{grid-template-columns:1fr;}
+    header{padding:16px 18px;}
+    main{padding:20px 14px 60px;}
+    .code-boxes input{width:38px; height:46px; font-size:18px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= AUTH SCREENS ================= -->
+<div id="authScreen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">S</div>
+
+    <!-- Name + email -->
+    <div id="authStep1">
+      <div class="auth-title">Welcome to Skill-Swap</div>
+      <div class="auth-sub">Enter your name and email to continue.</div>
+      <label>Full name</label>
+      <input type="text" id="authName" placeholder="e.g. Asha Mehta">
+      <label>Email address</label>
+      <input type="email" id="authEmail" placeholder="you@example.com">
+      <button class="full" id="btnSendCode">Continue</button>
+      <div class="auth-error" id="authErr1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="appScreen" style="display:none;">
+
+<header>
+  <div class="brand">
+    <div class="logo">S</div>
+    <div>
+      <h1>Skill-Swap</h1>
+      <p>Open-Source, AI-matched peer-to-peer skill learning</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="icon-btn" id="btnBell" title="Swap requests" role="button" aria-label="Swap requests">🔔<span class="badge" id="bellBadge" hidden></span></div>
+    <div class="icon-btn" id="btnSettings" title="AI engine settings">⚙</div>
+    <div class="user-chip" id="userChip" title="Log out">
+      <div class="av" id="userAvatar"></div>
+      <span class="uname" id="userNameLabel"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <div class="tab active" data-tab="people">🧑‍🤝‍🧑 Find People</div>
+    <div class="tab" data-tab="add">➕ Add Profile</div>
+    <div class="tab" data-tab="matches">✨ AI Matches</div>
+    <div class="tab" data-tab="swaps">🔁 My Swaps <span class="count" id="swapCount" hidden></span></div>
+  </div>
+
+  <div id="tab-people" class="tab-content">
+    <div class="card">
+      <h2>Find People</h2>
+      <div class="sub">Click a profile to see their AI-ranked skill matches.</div>
+      <div id="peopleGrid" class="people-grid"></div>
+    </div>
+  </div>
+
+  <div id="tab-add" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2>Create a profile</h2>
+      <div class="sub">Separate multiple skills with commas. Our matcher understands related skills, not just exact words — e.g. "Guitar" and "Singing" will still connect.</div>
+      <label>Your name</label>
+      <input type="text" id="inpName" placeholder="e.g. Asha">
+      <div class="row">
+        <div>
+          <label>Skills you can teach</label>
+          <input type="text" id="inpTeach" placeholder="e.g. Python, UX Design, English">
+        </div>
+        <div>
+          <label>Skills you want to learn</label>
+          <input type="text" id="inpLearn" placeholder="e.g. Guitar, Excel">
+        </div>
+      </div>
+      <div class="hint">Try skills like: Python, JavaScript, UX Design, UI Design, Graphic Design, English, Spanish, Guitar, Singing, Piano, Photography, Video Editing, Public Speaking, Writing, Marketing, Cooking, Baking, Yoga, Chess, Excel, Data Science.</div>
+      <button id="btnAdd">Add Profile</button>
+    </div>
+  </div>
+
+  <div id="tab-matches" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2 id="matchTitle">AI Matches</h2>
+      <div class="sub" id="matchSub">Select someone from Find People first.</div>
+      <div id="engineIndicator"></div>
+      <div id="matchList"></div>
+    </div>
+  </div>
+
+  <div id="tab-swaps" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2>My Swaps</h2>
+      <div class="sub">Requests sent to you, requests you've sent, and your confirmed sessions.</div>
+      <div id="swapsBody"></div>
+    </div>
+  </div>
+</main>
+
+</div>
+
+<!-- ================= SWAP WINDOWS + TOASTS ================= -->
+<div id="swapOverlay" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true">
+  <div class="modal wide" id="swapModalBody"></div>
+</div>
+<div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+
+<!-- ================= SETTINGS MODAL ================= -->
+<div id="settingsModal" class="modal-overlay" style="display:none;">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>AI Matching Engine</h3>
+      <div class="close-x" id="closeSettings">✕</div>
+    </div>
+    <div class="sub" style="margin-top:4px;">Choose how skill relatedness is scored.</div>
+
+    <div class="toggle-row">
+      <div>
+        <div class="ttitle">Use Gemma 4 (online)</div>
+        <div class="tdesc">Calls Google's Gemma 4 model live via the Gemini API for semantic scoring. Falls back automatically to the local engine if the call fails.</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="toggleGemma">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div id="gemmaFields" style="display:none;">
+      <label>Gemini API Key</label>
+      <input type="password" id="gemmaKey" placeholder="Paste your Gemini API key">
+      <label>Model</label>
+      <select id="gemmaModel">
+        <option value="gemma-4-26b-a4b-it">gemma-4-26b-a4b-it (faster)</option>
+        <option value="gemma-4-31b-it">gemma-4-31b-it (stronger)</option>
+      </select>
+      <div class="hint">Stored only in this browser tab's session — never saved to disk. For live demos, keep this off unless you want to show the real API call; the local engine is instant and works with no internet.</div>
+    </div>
+
+    <button class="full" id="btnSaveSettings">Save Settings</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   AI MATCHING ENGINE
+   Two interchangeable backends:
+   1) LOCAL  — a hand-built synonym/relation graph + token
+      overlap scoring. Instant, offline, demo-safe (default).
+   2) GEMMA  — optional live call to Google's Gemma 4 model
+      via the Gemini API, scoring semantic relatedness between
+      skill phrases. Falls back to LOCAL on any failure so a
+      flaky connection never breaks the demo.
+   ========================================================= */
+const RELATED = {
+  python: ["django","flask","data science","machine learning","ai","programming","coding","backend","excel"],
+  javascript: ["react","node","web development","frontend","typescript","coding"],
+  cooking: ["baking","recipes","culinary","food"],
+  baking: ["cooking","pastry","recipes"],
+  guitar: ["music","singing","songwriting","ukulele","piano"],
+  singing: ["music","guitar","piano","songwriting"],
+  piano: ["music","guitar","singing","songwriting"],
+  design: ["ui design","ux design","figma","graphic design","illustration"],
+  "ux design": ["design","ui design","figma","graphic design"],
+  "ui design": ["design","ux design","figma","graphic design"],
+  "graphic design": ["design","ui design","ux design","illustration"],
+  "public speaking": ["communication","presentation","debate","english"],
+  writing: ["blogging","content writing","copywriting","storytelling","english"],
+  photography: ["editing","videography","design","video editing"],
+  "video editing": ["photography","editing","videography"],
+  marketing: ["seo","social media","branding","content writing"],
+  "data science": ["python","machine learning","statistics","ai","excel"],
+  "machine learning": ["python","ai","data science"],
+  yoga: ["fitness","meditation","wellness"],
+  fitness: ["yoga","nutrition","wellness"],
+  english: ["writing","public speaking"],
+  chess: ["strategy","logic"],
+  excel: ["data science","spreadsheets","finance","python"],
+};
+
+function tokenize(s){
+  return s.toLowerCase().split(",").map(x=>x.trim()).filter(Boolean);
+}
+
+function localRelatedness(a, b){
+  if(a === b) return 1;
+  const ra = RELATED[a] || [];
+  const rb = RELATED[b] || [];
+  if(ra.includes(b) || rb.includes(a)) return 0.6;
+  const wa = a.split(" "), wb = b.split(" ");
+  const overlap = wa.filter(w=>wb.includes(w)).length;
+  if(overlap > 0) return 0.4;
+  return 0;
+}
+
+/* A skill pair must score at least this to count as a match. Weaker links
+   (same broad category, one shared word) are ignored. */
+const MIN_SKILL_SCORE = 0.5;
+
+/* Different languages are never treated as related to each other,
+   no matter which engine is scoring (English does not help with Spanish). */
+const LANGUAGES = new Set([
+  "english","spanish","french","german","italian","portuguese","russian","hindi","bengali","bangla",
+  "tamil","telugu","marathi","gujarati","urdu","punjabi","mandarin","chinese","japanese","korean","arabic"
+]);
+
+/* ---- Gemma 4 live scoring (optional) ---- */
+const gemmaCache = new Map();
+const GEMMA_TIMEOUT_MS = 7000;
+
+async function gemmaRelatedness(a, b, apiKey, model){
+  const cacheKey = model + "::" + [a,b].sort().join("::");
+  if(gemmaCache.has(cacheKey)) return gemmaCache.get(cacheKey);
+
+  // Reuse an in-flight request for the same pair instead of firing a duplicate.
+  const inFlightKey = cacheKey + "::inflight";
+  if(gemmaCache.has(inFlightKey)) return gemmaCache.get(inFlightKey);
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const prompt = `You score how closely two skills are related for a peer-to-peer skill swap. Someone who wants to learn Skill A would be well served by a teacher of Skill B.
+Skill A: "${a}"
+Skill B: "${b}"
+Scoring rules:
+- 1.0 means the same skill.
+- 0.6 to 0.9 means one is a direct sub-field, tool, or closely tied discipline of the other (for example Python and Data Science).
+- 0.0 to 0.2 means they only share a broad category and learning one would not help with the other (for example English and Spanish are different languages, Guitar and Cooking are unrelated).
+Respond with ONLY a single decimal number between 0 and 1, nothing else.`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), GEMMA_TIMEOUT_MS);
+
+  const promise = (async ()=>{
+    try{
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0, maxOutputTokens: 8 }
+        })
+      });
+      if(!res.ok) throw new Error("Gemma API error " + res.status);
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "0";
+      const num = parseFloat((text.match(/[\d.]+/) || ["0"])[0]);
+      const score = isNaN(num) ? 0 : Math.max(0, Math.min(1, num));
+      gemmaCache.set(cacheKey, score);
+      return score;
+    }finally{
+      clearTimeout(timer);
+      gemmaCache.delete(inFlightKey);
+    }
+  })();
+
+  gemmaCache.set(inFlightKey, promise);
+  return promise;
+}
+
+async function relatedness(a, b){
+  if(a === b) return 1;
+  if(LANGUAGES.has(a) && LANGUAGES.has(b)) return 0;
+  if(aiSettings.useGemma && aiSettings.apiKey){
+    try{
+      return await gemmaRelatedness(a, b, aiSettings.apiKey, aiSettings.model);
+    }catch(e){
+      const reason = e.name === "AbortError" ? "timed out after 7s" : e.message;
+      console.warn("Gemma call failed, falling back to local engine:", reason);
+      return localRelatedness(a, b);
+    }
+  }
+  return localRelatedness(a, b);
+}
+
+async function skillSetScore(wants, offers){
+  // Run every (want, offer) pair in parallel instead of one at a time —
+  // sequential awaits here are what made the live Gemma mode feel stuck.
+  const pairResults = await Promise.all(
+    wants.map(async w=>{
+      const scores = await Promise.all(offers.map(o=>relatedness(w,o)));
+      let best = 0, bestSkill = null;
+      scores.forEach((r,i)=>{ if(r > best){ best = r; bestSkill = offers[i]; } });
+      return { want:w, offer:bestSkill, strength:best };
+    })
+  );
+  let total = 0, matches = [];
+  pairResults.forEach(m=>{ if(m.strength >= MIN_SKILL_SCORE){ total += m.strength; matches.push(m); } });
+  return { total, matches };
+}
+
+/* =========================================================
+   AUTH (name + email, no verification step)
+   ========================================================= */
+const AUTH_KEY = "skillswap_auth_v1";
+
+let currentUser = null;
+function guessTz(){
+  try{ return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; }catch(e){ return ""; }
+}
+
+function initials(name){
+  return (name||"?").trim().split(/\s+/).map(p=>p[0]).slice(0,2).join("").toUpperCase();
+}
+function colorFromName(name){
+  let hash = 0;
+  for(let i=0;i<name.length;i++){ hash = name.charCodeAt(i) + ((hash<<5)-hash); }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 65%)`;
+}
+
+document.getElementById("btnSendCode").onclick = ()=>{
+  const name = document.getElementById("authName").value.trim();
+  const email = document.getElementById("authEmail").value.trim();
+  const errEl = document.getElementById("authErr1");
+  errEl.textContent = "";
+  if(!name){ errEl.textContent = "Please enter your name."; return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = "Please enter a valid email address."; return; }
+
+  const user = { name, email, tz: guessTz() };
+  sessionStorage.setItem(AUTH_KEY, JSON.stringify(user));
+  enterApp(user);
+};
+
+function enterApp(user){
+  currentUser = { ...user, tz: user.tz || guessTz() };
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("appScreen").style.display = "block";
+  document.getElementById("userAvatar").textContent = initials(user.name);
+  document.getElementById("userAvatar").style.background = colorFromName(user.name);
+  document.getElementById("userNameLabel").textContent = user.name.split(" ")[0];
+  const nameInp = document.getElementById("inpName");
+  if(nameInp && !nameInp.value) nameInp.value = user.name;
+  renderPeople();
+  syncSwaps();
+  if(!syncTimer) syncTimer = setInterval(syncSwaps, 2500);
+}
+
+document.getElementById("userChip").onclick = ()=>{
+  if(confirm("Log out of Skill-Swap?")){
+    sessionStorage.removeItem(AUTH_KEY);
+    location.reload();
+  }
+};
+
+/* =========================================================
+   AI ENGINE SETTINGS
+   ========================================================= */
+const AI_SETTINGS_KEY = "skillswap_ai_settings_v1";
+let aiSettings = { useGemma:false, apiKey:"", model:"gemma-4-26b-a4b-it" };
+try{
+  const raw = sessionStorage.getItem(AI_SETTINGS_KEY);
+  if(raw) aiSettings = { ...aiSettings, ...JSON.parse(raw) };
+}catch(e){}
+
+function saveAiSettings(){
+  sessionStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(aiSettings));
+}
+
+document.getElementById("btnSettings").onclick = ()=>{
+  document.getElementById("toggleGemma").checked = aiSettings.useGemma;
+  document.getElementById("gemmaKey").value = aiSettings.apiKey;
+  document.getElementById("gemmaModel").value = aiSettings.model;
+  document.getElementById("gemmaFields").style.display = aiSettings.useGemma ? "block" : "none";
+  document.getElementById("settingsModal").style.display = "flex";
+};
+document.getElementById("closeSettings").onclick = ()=>{
+  document.getElementById("settingsModal").style.display = "none";
+};
+document.getElementById("toggleGemma").onchange = (e)=>{
+  document.getElementById("gemmaFields").style.display = e.target.checked ? "block" : "none";
+};
+document.getElementById("btnSaveSettings").onclick = ()=>{
+  aiSettings.useGemma = document.getElementById("toggleGemma").checked;
+  aiSettings.apiKey = document.getElementById("gemmaKey").value.trim();
+  aiSettings.model = document.getElementById("gemmaModel").value;
+  if(aiSettings.useGemma && !aiSettings.apiKey){
+    alert("Please paste a Gemini API key, or turn the toggle off to use the local engine.");
+    return;
+  }
+  saveAiSettings();
+  document.getElementById("settingsModal").style.display = "none";
+  if(selectedId) renderMatches();
+};
+
+/* =========================================================
+   DATA LAYER (localStorage) — demo profiles use first names
+   only, with a randomized 1–3 spread of skills taught/wanted
+   across a broad skill pool (programming, design, languages,
+   music, lifestyle) to show the matcher handling variety.
+   ========================================================= */
+const STORAGE_KEY = "skillswap_people_v2";
+
+function loadPeople(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{ return JSON.parse(raw); }catch(e){}
+  }
+  const seed = [
+    {id:1, name:"Asha",   teach:["python","data science"],               learn:["baking","guitar","ux design"]},
+    {id:2, name:"Rohan",  teach:["baking","cooking","english"],           learn:["python"]},
+    {id:3, name:"Priya",  teach:["guitar","singing"],                    learn:["ux design","javascript"]},
+    {id:4, name:"Karan",  teach:["ux design","ui design","graphic design"], learn:["marketing"]},
+    {id:5, name:"Neha",   teach:["marketing","writing"],                 learn:["data science","yoga","spanish"]},
+    {id:6, name:"Vikram", teach:["javascript"],                          learn:["singing","cooking"]},
+    {id:7, name:"Meera",  teach:["yoga","english","spanish"],            learn:["photography"]},
+    {id:8, name:"Arjun",  teach:["photography","video editing"],         learn:["english","chess"]},
+  ];
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+  return seed;
+}
+
+function savePeople(people){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
+}
+
+let people = loadPeople();
+let selectedId = null;
+
+/* =========================================================
+   RENDERING
+   ========================================================= */
+function renderPeople(){
+  const grid = document.getElementById("peopleGrid");
+  grid.innerHTML = "";
+  const mine = currentUser ? findMyProfile() : null;
+  people.forEach(p=>{
+    const div = document.createElement("div");
+    div.className = "person" + (sameId(p.id, selectedId) ? " selected" : "");
+    div.onclick = ()=>{ selectedId = p.id; switchTab("matches"); renderMatches(); renderPeople(); };
+    div.innerHTML = `
+      <div class="person-head">
+        <div class="avatar" style="background:${colorFromName(p.name)}">${initials(p.name)}</div>
+        <div class="name">${escapeHtml(p.name)}${mine && sameId(mine.id, p.id) ? '<span class="you-chip">You</span>' : ''}</div>
+      </div>
+      <div class="section-label">TEACHES</div>
+      <div class="tag-row">${p.teach.map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>
+      <div class="section-label">WANTS TO LEARN</div>
+      <div class="tag-row">${p.learn.map(t=>`<span class="tag learn">${escapeHtml(t)}</span>`).join("")}</div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+let matchRequestId = 0;
+let lastScored = null;
+
+// Builds "<b>skill</b> (note), <b>skill</b>" for up to 3 distinct skills.
+function skillPhrase(matches, shown, note){
+  const seen = new Set(), parts = [];
+  matches.forEach(m=>{
+    const skill = shown(m);
+    if(seen.has(skill)) return;
+    seen.add(skill);
+    const n = note(m);
+    parts.push(`<b>${escapeHtml(skill)}</b>` + (n ? ` <span class="rel">(${escapeHtml(n)})</span>` : ""));
+  });
+  return parts.slice(0,3).join(", ");
+}
+
+async function renderMatches(){
+  const title = document.getElementById("matchTitle");
+  const sub = document.getElementById("matchSub");
+  const list = document.getElementById("matchList");
+  const engineEl = document.getElementById("engineIndicator");
+
+  lastScored = null;
+
+  const me = selectedId ? getPerson(selectedId) : null;
+  if(!me){
+    title.textContent = "AI Matches";
+    sub.textContent = "Select someone from Find People first.";
+    list.innerHTML = "";
+    engineEl.innerHTML = "";
+    return;
+  }
+
+  title.textContent = `Matches for ${me.name}`;
+  const mine = currentUser ? findMyProfile() : null;
+  let hint = "";
+  if(!mine) hint = " Add your own profile to send swap requests.";
+  else if(!sameId(mine.id, me.id)) hint = " You're viewing someone else's matches. Open your own profile to send swap requests.";
+  sub.textContent = "Ranked by our AI similarity engine — exact and related skills both count." + hint;
+  engineEl.innerHTML = aiSettings.useGemma && aiSettings.apiKey
+    ? `<div class="engine-pill engine-gemma"><span class="dot"></span>Gemma 4 live scoring</div>`
+    : `<div class="engine-pill engine-local"><span class="dot"></span>Local AI engine (offline)</div>`;
+
+  list.innerHTML = `<div class="empty">Scoring matches…</div>`;
+
+  // Guard against a race: if the person switches to someone else while this
+  // is still in flight, a late-arriving older result must not overwrite
+  // the newer selection's rendered matches.
+  const requestId = ++matchRequestId;
+
+  // Never match a profile against itself (same id, same email, or the same
+  // person added twice under one name).
+  const others = people.filter(p=>!isSamePerson(p, me));
+  const results = await Promise.all(others.map(async other=>{
+    const [aToB, bToA] = await Promise.all([
+      skillSetScore(me.learn, other.teach),
+      skillSetScore(other.learn, me.teach)
+    ]);
+    const combined = aToB.total + bToA.total;
+    return { other, aToB, bToA, combined };
+  }));
+
+  if(requestId !== matchRequestId) return; // a newer selection has since taken over
+
+  const scored = results.filter(s=>s.combined > 0).sort((a,b)=>b.combined - a.combined);
+  lastScored = { meId: me.id, scored };
+  renderMatchCards();
+}
+
+// Draws the cards from the last scoring run, so swap status changes can
+// refresh buttons without re-scoring (and without re-calling Gemma).
+function renderMatchCards(){
+  const list = document.getElementById("matchList");
+  if(!lastScored || !sameId(lastScored.meId, selectedId)) return;
+  const me = getPerson(lastScored.meId);
+  if(!me) return;
+  const scored = lastScored.scored;
+
+  if(scored.length===0){
+    list.innerHTML = `<div class="empty">No AI matches found yet for ${escapeHtml(me.name)}. Try adding more profiles with overlapping or related skills.</div>`;
+    return;
+  }
+
+  const mine = currentUser ? findMyProfile() : null;
+  const canAct = !!(mine && sameId(mine.id, me.id));
+  const maxScore = Math.max(...scored.map(s=>s.combined), 1);
+  list.innerHTML = "";
+
+  scored.forEach(s=>{
+    const pct = Math.min(100, Math.round((s.combined/maxScore) * 100));
+    const learnFrom = skillPhrase(s.aToB.matches, m=>m.offer, m=> m.want!==m.offer ? "you want " + m.want : "");
+    const taughtBy  = skillPhrase(s.bToA.matches, m=>m.want,  m=> m.want!==m.offer ? "you teach " + m.offer : "");
+    const lines = [];
+    if(learnFrom) lines.push(`You could learn ${learnFrom} from their personal skill set`);
+    if(taughtBy)  lines.push(`They want to be taught ${taughtBy} from your personal skill set`);
+
+    const div = document.createElement("div");
+    div.className = "match-card";
+    div.innerHTML = `
+      <div class="match-left">
+        <div class="score-ring" style="--pct:${pct}"><span>${pct}%</span></div>
+        <div class="match-info">
+          <div class="avatar" style="background:${colorFromName(s.other.name)}; display:inline-flex; width:26px; height:26px; font-size:10px; vertical-align:middle; margin-right:6px;">${initials(s.other.name)}</div>
+          <span class="match-name">${escapeHtml(s.other.name)}</span>
+          <div class="match-reason">${lines.map(l=>`<div>${l}</div>`).join("") || "Related skill overlap"}</div>
+        </div>
+      </div>
+      <div class="match-actions">${matchActionHtml(me, s.other, canAct)}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function matchActionHtml(me, other, canAct){
+  const s = latestSwap(me.id, other.id);
+  const dis = canAct ? "" : ` disabled title="Open your own profile to send swap requests"`;
+
+  if(!s || (s.status==="declined" && sameId(s.toId, me.id))){
+    return `<button class="small"${dis} onclick="startSwap('${other.id}')">Request Swap</button>`;
+  }
+  if(s.status==="pending"){
+    return sameId(s.fromId, me.id)
+      ? `<span class="status-pill status-pending">Waiting for reply</span>`
+      : `<button class="small" onclick="openReviewModal('${s.id}')">Review request</button>`;
+  }
+  if(s.status==="accepted"){
+    return (s.session ? `<span class="status-pill status-sent">Session set</span>` : "")
+      + `<button class="small" onclick="openSessionModal('${s.id}')">${s.session ? "View session" : "Plan session"}</button>`;
+  }
+  // declined, and I was the one who asked
+  return `<span class="status-pill status-declined">Declined</span>`
+    + `<button class="small ghost"${dis} onclick="startSwap('${other.id}')">Request again</button>`;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+function switchTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+  document.querySelectorAll(".tab-content").forEach(c=>c.style.display="none");
+  document.getElementById("tab-"+name).style.display = "block";
+  if(name==="swaps") renderSwapsTab();
+}
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick = ()=> { switchTab(t.dataset.tab); if(t.dataset.tab==="matches") renderMatches(); };
+});
+
+/* =========================================================
+   ADD PROFILE
+   ========================================================= */
+document.getElementById("btnAdd").onclick = ()=>{
+  const name = document.getElementById("inpName").value.trim();
+  const teach = tokenize(document.getElementById("inpTeach").value);
+  const learn = tokenize(document.getElementById("inpLearn").value);
+  if(!name || teach.length===0 || learn.length===0){
+    alert("Please fill in your name, at least one skill to teach, and one to learn.");
+    return;
+  }
+  // Adding a profile under your own login name updates your existing profile
+  // instead of creating a duplicate that would show up in your own matches.
+  const isMe = !!currentUser && normName(name)===normName(currentUser.name);
+  const mine = isMe ? findMyProfile() : null;
+  if(mine){
+    mine.name = name; mine.teach = teach; mine.learn = learn;
+  } else {
+    const profile = { id: Date.now(), name, teach, learn };
+    if(isMe){ profile.email = currentUser.email; profile.tz = currentUser.tz; }
+    people.push(profile);
+  }
+  savePeople(people);
+  document.getElementById("inpName").value = currentUser ? currentUser.name : "";
+  document.getElementById("inpTeach").value = "";
+  document.getElementById("inpLearn").value = "";
+  renderPeople();
+  switchTab("people");
+};
+
+/* =========================================================
+   SWAP REQUESTS
+   Flow: Request Swap -> the other person accepts or declines ->
+   the sender sees an "accepted" window -> both get the partner's
+   details and a session setup window.
+   State lives in localStorage, so two browser tabs (each logged in
+   as a different person) can run the whole flow. A real deployment
+   must enforce these rules on the server.
+   ========================================================= */
+const SWAPS_KEY = "skillswap_swaps_v1";
+const swapOverlay = document.getElementById("swapOverlay");
+const swapModalBody = document.getElementById("swapModalBody");
+let modalCtx = null;       // what the open window is about
+let swapDraft = null;      // the request being composed
+let sessMode = "video";    // chosen meeting mode in the session window
+let lastSwapSig = "";
+let syncTimer = null;
+const toastedIds = new Set();
+
+/* ---- storage helpers ---- */
+function loadSwaps(){ try{ return JSON.parse(localStorage.getItem(SWAPS_KEY)) || []; }catch(e){ return []; } }
+function saveSwaps(list){ localStorage.setItem(SWAPS_KEY, JSON.stringify(list)); }
+function getSwap(id){ return loadSwaps().find(x=>x.id===id) || null; }
+function updateSwap(id, fn){
+  const list = loadSwaps();
+  const s = list.find(x=>x.id===id);
+  if(!s) return null;
+  fn(s);
+  saveSwaps(list);
+  return s;
+}
+function newSwapId(){ return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function uniq(arr){ return [...new Set(arr)]; }
+
+/* ---- identity ---- */
+function sameId(a, b){ return String(a)===String(b); }
+function normName(n){ return (n||"").trim().toLowerCase().replace(/\s+/g," "); }
+
+// Same person if same id or same email; if either profile has no email
+// (older profiles), fall back to the same name.
+function isSamePerson(a, b){
+  if(!a || !b) return false;
+  if(sameId(a.id, b.id)) return true;
+  const ea = (a.email||"").toLowerCase(), eb = (b.email||"").toLowerCase();
+  if(ea && eb) return ea===eb;
+  return normName(a.name)===normName(b.name);
+}
+function getPerson(id){
+  let p = people.find(x=>sameId(x.id, id));
+  if(!p){ people = loadPeople(); p = people.find(x=>sameId(x.id, id)); }
+  return p || null;
+}
+// The profile that belongs to the logged-in user (matched by email, or by
+// name for profiles created before emails were stored).
+function findMyProfile(){
+  if(!currentUser) return null;
+  const email = (currentUser.email||"").toLowerCase();
+  let p = people.find(x=>x.email && x.email.toLowerCase()===email);
+  if(p) return p;
+  p = people.find(x=>!x.email && normName(x.name)===normName(currentUser.name));
+  if(p){
+    p.email = currentUser.email;
+    if(!p.tz) p.tz = currentUser.tz;
+    savePeople(people);
+  }
+  return p || null;
+}
+// Most relevant swap between two people, in either direction.
+function latestSwap(aId, bId){
+  const rel = loadSwaps().filter(s=>
+    (sameId(s.fromId,aId) && sameId(s.toId,bId)) || (sameId(s.fromId,bId) && sameId(s.toId,aId)));
+  if(!rel.length) return null;
+  rel.sort((x,y)=>y.createdAt - x.createdAt);
+  return rel.find(s=>s.status!=="declined") || rel[0];
+}
+
+/* ---- small view helpers ---- */
+function avatarHtml(name, size){
+  return `<div class="avatar" style="background:${colorFromName(name)}; width:${size}px; height:${size}px; font-size:${Math.round(size*0.37)}px;">${initials(name)}</div>`;
+}
+function tagsHtml(arr, cls){
+  if(!arr || !arr.length) return `<div class="hint">Nothing listed</div>`;
+  return `<div class="tag-row">${arr.map(t=>`<span class="tag ${cls||""}">${escapeHtml(t)}</span>`).join("")}</div>`;
+}
+function skillsInline(arr){
+  return arr && arr.length ? arr.map(t=>`<b>${escapeHtml(t)}</b>`).join(", ") : "nothing yet";
+}
+function modalHead(title){
+  return `<div class="modal-head"><h3>${title}</h3><div class="close-x" role="button" aria-label="Close" onclick="closeModal()">✕</div></div>`;
+}
+function modeLabel(m){ return m==="video" ? "Video call" : m==="chat" ? "Chat" : "In person"; }
+function fmtWhen(sess){
+  const d = new Date(`${sess.date}T${sess.time}`);
+  const day = d.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric", year:"numeric" });
+  const t = d.toLocaleTimeString([], { hour:"numeric", minute:"2-digit" });
+  return `${day}, ${t}`;
+}
+
+/* ---- windows ---- */
+function openModal(html, ctx){
+  swapModalBody.innerHTML = html;
+  swapOverlay.style.display = "flex";
+  modalCtx = ctx || { type:"generic" };
+  const f = swapModalBody.querySelector("[data-autofocus]");
+  if(f) f.focus();
+}
+function closeModal(){
+  swapOverlay.style.display = "none";
+  swapModalBody.innerHTML = "";
+  modalCtx = null;
+  swapDraft = null;
+  syncSwaps(); // show anything that was waiting for this window to close
+}
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && swapOverlay.style.display==="flex") closeModal();
+});
+
+function showToast(msg, actionLabel, actionFn){
+  const wrap = document.getElementById("toastWrap");
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.setAttribute("role", "status");
+  const span = document.createElement("span");
+  span.textContent = msg;
+  t.appendChild(span);
+  if(actionLabel){
+    const b = document.createElement("button");
+    b.className = "small ghost";
+    b.textContent = actionLabel;
+    b.onclick = ()=>{ t.remove(); actionFn(); };
+    t.appendChild(b);
+  }
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(), actionLabel ? 12000 : 4500);
+}
+
+function updateBadges(all, me){
+  const n = (all && me) ? all.filter(s=>s.status==="pending" && sameId(s.toId, me.id)).length : 0;
+  [document.getElementById("bellBadge"), document.getElementById("swapCount")].forEach(el=>{
+    el.textContent = n;
+    el.hidden = !n;
+  });
+}
+
+/* ---- polling + cross-tab updates ---- */
+function syncSwaps(){
+  if(!currentUser) return;
+  people = loadPeople();
+  const me = findMyProfile();
+  if(!me){ updateBadges(null, null); return; }
+
+  const all = loadSwaps().filter(s=>sameId(s.fromId, me.id) || sameId(s.toId, me.id));
+  const sig = JSON.stringify(all);
+  if(sig !== lastSwapSig){
+    lastSwapSig = sig;
+    renderMatchCards();
+    renderSwapsTab();
+  }
+  updateBadges(all, me);
+
+  // New requests addressed to me
+  const fresh = all.filter(s=>s.status==="pending" && sameId(s.toId, me.id) && !toastedIds.has(s.id));
+  if(fresh.length){
+    fresh.forEach(s=>toastedIds.add(s.id));
+    if(fresh.length===1){
+      const from = getPerson(fresh[0].fromId);
+      showToast(`${from ? from.name : "Someone"} wants to swap skills with you`, "Review", ()=>openReviewModal(fresh[0].id));
+    } else {
+      showToast(`You have ${fresh.length} new swap requests`, "Open", ()=>switchTab("swaps"));
+    }
+  }
+
+  // Answers to requests I sent. Show them as soon as no other window is open,
+  // or straight away if I'm looking at that request's "waiting" window.
+  const windowFree = swapOverlay.style.display!=="flex" && document.getElementById("settingsModal").style.display!=="flex";
+  const waitingId = modalCtx && modalCtx.type==="waiting" ? modalCtx.swapId : null;
+  const answered = all.find(s=>sameId(s.fromId, me.id) && (s.status==="accepted" || s.status==="declined")
+    && !s.notifiedSender && (windowFree || s.id===waitingId));
+  if(answered){
+    if(answered.status==="accepted") showAcceptedModal(answered);
+    else showDeclinedModal(answered);
+  }
+}
+window.addEventListener("storage", e=>{
+  if(e.key===SWAPS_KEY || e.key===STORAGE_KEY) syncSwaps();
+});
+
+/* ---- Window 1 (sender): compose the request ---- */
+function startSwap(otherId){
+  const me = findMyProfile();
+  const other = getPerson(otherId);
+  if(!me || !other) return;
+  const s = latestSwap(me.id, other.id);
+  if(s && s.status==="accepted") return openSessionModal(s.id);
+  if(s && s.status==="pending"){
+    return sameId(s.toId, me.id) ? openReviewModal(s.id) : openWaitingModal(s.id);
+  }
+  openRequestModal(other);
+}
+
+function openRequestModal(other){
+  const me = findMyProfile();
+  if(!me) return;
+  const entry = lastScored && sameId(lastScored.meId, me.id)
+    ? lastScored.scored.find(x=>sameId(x.other.id, other.id)) : null;
+  const give = entry ? uniq(entry.bToA.matches.map(m=>m.offer)) : [];  // what I would teach them
+  const get  = entry ? uniq(entry.aToB.matches.map(m=>m.offer)) : [];  // what they would teach me
+  swapDraft = { otherId: other.id, give, get };
+  const name = escapeHtml(other.name);
+  const first = escapeHtml(other.name.split(" ")[0]);
+  const oneWay = get.length===0
+    ? `<div class="hint">${name} doesn't list anything you want to learn yet, so this would be one-way help.</div>` : "";
+  openModal(`
+    ${modalHead(`Send a swap request to ${name}?`)}
+    <div class="sub">${first} will get a notification and can accept or decline. You'll see their details once they accept.</div>
+    <div class="swap-terms">
+      <div class="box"><div class="lbl">You'll teach</div>${tagsHtml(give)}</div>
+      <div class="box"><div class="lbl">${first} will teach you</div>${tagsHtml(get, "learn")}</div>
+    </div>
+    ${oneWay}
+    <label for="swapMsg">Message (optional)</label>
+    <textarea id="swapMsg" maxlength="280" placeholder="Hi ${first}, I'd love to swap skills with you." data-autofocus></textarea>
+    <button class="full" onclick="sendSwapRequest()">Send request</button>
+  `, { type:"request" });
+}
+
+function sendSwapRequest(){
+  const me = findMyProfile();
+  if(!me || !swapDraft) return;
+  const other = getPerson(swapDraft.otherId);
+  if(!other) return;
+  const existing = latestSwap(me.id, other.id);
+  if(existing && existing.status!=="declined"){ closeModal(); return; }
+  const message = (document.getElementById("swapMsg").value || "").trim().slice(0,280);
+  const swap = {
+    id: newSwapId(), fromId: me.id, toId: other.id,
+    give: swapDraft.give, get: swapDraft.get, message,
+    status: "pending", createdAt: Date.now(), notifiedSender: false, session: null
+  };
+  const list = loadSwaps();
+  list.push(swap);
+  saveSwaps(list);
+  openWaitingModal(swap.id);
+  syncSwaps();
+}
+
+function openWaitingModal(swapId){
+  const s = getSwap(swapId);
+  if(!s) return;
+  const other = getPerson(s.toId);
+  const name = escapeHtml(other ? other.name : "them");
+  openModal(`
+    ${modalHead("")}
+    <div class="state-icon wait">⏳</div>
+    <div class="state-title">Request sent</div>
+    <div class="state-sub">Waiting for ${name} to accept. We'll show you a window here as soon as they respond. You can close this and keep browsing.</div>
+    <button class="full ghost" onclick="closeModal()">Close</button>
+  `, { type:"waiting", swapId });
+}
+
+/* ---- Window 2 (receiver): accept or decline ---- */
+function openReviewModal(swapId){
+  const me = findMyProfile();
+  const s = getSwap(swapId);
+  if(!me || !s || !sameId(s.toId, me.id)) return;
+  if(s.status==="accepted") return openSessionModal(s.id);
+  if(s.status!=="pending") return;
+  const from = getPerson(s.fromId);
+  if(!from) return;
+  const name = escapeHtml(from.name);
+  openModal(`
+    ${modalHead(`${name} wants to swap skills`)}
+    <div class="partner-card">
+      ${avatarHtml(from.name, 46)}
+      <div>
+        <div class="match-name">${name}</div>
+        <div class="match-reason">Sent a swap request</div>
+      </div>
+    </div>
+    ${s.message ? `<div class="quote">${escapeHtml(s.message)}</div>` : ""}
+    <div class="swap-terms">
+      <div class="box"><div class="lbl">${name} will teach you</div>${tagsHtml(s.give)}</div>
+      <div class="box"><div class="lbl">You'll teach ${name}</div>${tagsHtml(s.get, "learn")}</div>
+    </div>
+    <div class="btn-row">
+      <button class="ghost" onclick="respondSwap('${s.id}', false)">Decline</button>
+      <button onclick="respondSwap('${s.id}', true)">Accept swap</button>
+    </div>
+  `, { type:"review", swapId:s.id });
+}
+
+function respondSwap(id, accept){
+  const me = findMyProfile();
+  const s = updateSwap(id, sw=>{
+    if(sw.status==="pending" && me && sameId(sw.toId, me.id)){
+      sw.status = accept ? "accepted" : "declined";
+      sw.respondedAt = Date.now();
+    }
+  });
+  if(!s || s.status==="pending"){ closeModal(); return; }
+  syncSwaps();
+  if(s.status==="accepted"){
+    showToast("Swap accepted");
+    openSessionModal(id, { banner:true });
+  } else {
+    closeModal();
+    showToast("Request declined");
+  }
+}
+
+/* ---- Window 3 (sender): answer arrives ---- */
+function showAcceptedModal(s){
+  const other = getPerson(s.toId);
+  const name = escapeHtml(other ? other.name : "They");
+  updateSwap(s.id, sw=>{ sw.notifiedSender = true; });
+  openModal(`
+    ${modalHead("")}
+    <div class="state-icon ok">✓</div>
+    <div class="state-title">Your swap request was accepted!</div>
+    <div class="state-sub">${name} said yes. Now you can both trade your skills.</div>
+    <button class="full" onclick="openSessionModal('${s.id}')">Continue</button>
+  `, { type:"accepted", swapId:s.id });
+}
+function showDeclinedModal(s){
+  const other = getPerson(s.toId);
+  const name = escapeHtml(other ? other.name : "They");
+  updateSwap(s.id, sw=>{ sw.notifiedSender = true; });
+  openModal(`
+    ${modalHead("")}
+    <div class="state-icon no">✕</div>
+    <div class="state-title">${name} can't swap right now</div>
+    <div class="state-sub">Your request was declined. Your other matches are still open.</div>
+    <button class="full ghost" onclick="closeModal()">Close</button>
+  `, { type:"declined", swapId:s.id });
+}
+
+/* ---- Window 4 (both): partner details + session setup ---- */
+function openSessionModal(id, opts){
+  opts = opts || {};
+  const me = findMyProfile();
+  const s = getSwap(id);
+  if(!me || !s || s.status!=="accepted") return;   // details only exist after acceptance
+  const isFrom = sameId(s.fromId, me.id);
+  if(!isFrom && !sameId(s.toId, me.id)) return;
+  const partner = getPerson(isFrom ? s.toId : s.fromId);
+  if(!partner) return;
+  const iTeach = isFrom ? s.give : s.get;
+  const theyTeach = isFrom ? s.get : s.give;
+  const pName = escapeHtml(partner.name);
+  const contact = partner.email
+    ? `<a href="mailto:${escapeHtml(partner.email)}">${escapeHtml(partner.email)}</a>`
+    : `<span class="muted">No email on file</span>`;
+  const tz = partner.tz ? escapeHtml(partner.tz) : "not shared";
+
+  const top = `
+    ${modalHead(`Swap with ${pName}`)}
+    <div class="sub">${opts.banner ? "You accepted this request. Pick a time to start trading skills." : "You're connected. Here are their details and ways to meet."}</div>
+    <div class="partner-card">
+      ${avatarHtml(partner.name, 46)}
+      <div>
+        <div class="match-name">${pName}</div>
+        <div class="match-reason">Email: ${contact}<br>Time zone: ${tz}</div>
+      </div>
+    </div>
+    <div class="swap-terms">
+      <div class="box"><div class="lbl">You teach</div>${tagsHtml(iTeach)}</div>
+      <div class="box"><div class="lbl">${pName} teaches you</div>${tagsHtml(theyTeach, "learn")}</div>
+    </div>`;
+
+  // Confirmed session view
+  if(s.session && !opts.edit){
+    const ss = s.session;
+    const setBy = sameId(ss.setBy, me.id) ? "you" : partner.name;
+    let how = "";
+    if(ss.mode==="video"){
+      const safe = typeof ss.link==="string" && ss.link.startsWith("https://meet.jit.si/");
+      how = safe ? `<a href="${escapeHtml(ss.link)}" target="_blank" rel="noopener noreferrer">Join video call</a>` : "Video call";
+    } else if(ss.mode==="chat"){
+      how = `Chat over email: ${contact}`;
+    } else {
+      how = `In person at ${escapeHtml(ss.location || "a place you agree on")}`;
+    }
+    openModal(`
+      ${top}
+      <div class="session-box">
+        <div class="lbl">Session confirmed (set by ${escapeHtml(setBy)})</div>
+        <div class="session-when">${escapeHtml(fmtWhen(ss))}</div>
+        <div class="match-reason">${escapeHtml(modeLabel(ss.mode))}: ${how}<br>Time zone: ${escapeHtml(ss.tz || "local")}</div>
+        ${ss.note ? `<div class="match-reason">Note: ${escapeHtml(ss.note)}</div>` : ""}
+      </div>
+      <div class="btn-row">
+        <button class="ghost" onclick="openSessionModal('${s.id}', {edit:true})">Reschedule</button>
+        <button onclick="closeModal()">Done</button>
+      </div>
+    `, { type:"session", swapId:s.id });
+    return;
+  }
+
+  // Session setup form
+  const sess = s.session || {};
+  sessMode = sess.mode || "video";
+  const today = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+  openModal(`
+    ${top}
+    <div class="row">
+      <div><label for="sessDate">Date</label><input type="date" id="sessDate" min="${today}" value="${escapeHtml(sess.date || "")}"></div>
+      <div><label for="sessTime">Time</label><input type="time" id="sessTime" value="${escapeHtml(sess.time || "")}"></div>
+    </div>
+    <div class="hint">Times are in your time zone (${escapeHtml(currentUser.tz || "local")}).</div>
+    <label>How will you meet?</label>
+    <div class="seg">
+      <button type="button" data-mode="video" onclick="setSessionMode('video')">Video call</button>
+      <button type="button" data-mode="chat" onclick="setSessionMode('chat')">Chat</button>
+      <button type="button" data-mode="inperson" onclick="setSessionMode('inperson')">In person</button>
+    </div>
+    <div id="modeHelp"></div>
+    <label for="sessNote">Note (optional)</label>
+    <input type="text" id="sessNote" maxlength="160" placeholder="e.g. Bring a laptop with Python installed" value="${escapeHtml(sess.note || "")}">
+    <div class="auth-error" id="sessErr"></div>
+    <button class="full" onclick="confirmSession('${s.id}')">Confirm session</button>
+  `, { type:"session", swapId:s.id });
+  setSessionMode(sessMode);
+  if(sess.location){
+    const l = document.getElementById("sessLoc");
+    if(l) l.value = sess.location;
+  }
+}
+
+function modeHelpHtml(m){
+  if(m==="video") return `<div class="hint">We'll create a private video room link for both of you when you confirm.</div>`;
+  if(m==="chat") return `<div class="hint">You'll chat over email at the time you pick. Their email is shown above.</div>`;
+  return `<label for="sessLoc">Where will you meet?</label><input type="text" id="sessLoc" maxlength="120" placeholder="e.g. Café near the library">`;
+}
+function setSessionMode(m){
+  sessMode = m;
+  document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on", b.dataset.mode===m));
+  document.getElementById("modeHelp").innerHTML = modeHelpHtml(m);
+}
+
+function confirmSession(id){
+  const me = findMyProfile();
+  const err = document.getElementById("sessErr");
+  err.textContent = "";
+  const date = document.getElementById("sessDate").value;
+  const time = document.getElementById("sessTime").value;
+  if(!date || !time){ err.textContent = "Pick a date and a time."; return; }
+  const when = new Date(`${date}T${time}`);
+  if(isNaN(when.getTime()) || when.getTime() < Date.now()){ err.textContent = "Pick a time in the future."; return; }
+  let location = "";
+  if(sessMode==="inperson"){
+    location = (document.getElementById("sessLoc").value || "").trim();
+    if(!location){ err.textContent = "Enter where you'll meet."; return; }
+  }
+  const note = (document.getElementById("sessNote").value || "").trim();
+  updateSwap(id, sw=>{
+    if(sw.status!=="accepted") return;
+    sw.session = {
+      date, time, mode: sessMode, location, note,
+      tz: currentUser.tz || "", setBy: me.id,
+      link: sessMode==="video" ? `https://meet.jit.si/SkillSwap-${sw.id}` : ""
+    };
+  });
+  syncSwaps();
+  showToast("Session confirmed. It's on both your schedules.");
+  openSessionModal(id);
+}
+
+/* ---- My Swaps tab ---- */
+function renderSwapsTab(){
+  const box = document.getElementById("swapsBody");
+  if(!box) return;
+  const me = currentUser ? findMyProfile() : null;
+  if(!me){
+    box.innerHTML = `<div class="empty">Add your profile first. Swap requests are tied to your profile.</div>`;
+    return;
+  }
+  const mine = loadSwaps().filter(s=>sameId(s.fromId, me.id) || sameId(s.toId, me.id));
+  const newest = (a,b)=>b.createdAt - a.createdAt;
+  const bySession = (a,b)=>{
+    const ka = a.session ? `${a.session.date}T${a.session.time}` : "9999";
+    const kb = b.session ? `${b.session.date}T${b.session.time}` : "9999";
+    return ka<kb ? -1 : ka>kb ? 1 : 0;
+  };
+  const incoming = mine.filter(s=>s.status==="pending" && sameId(s.toId, me.id)).sort(newest);
+  const active = mine.filter(s=>s.status==="accepted").sort(bySession);
+  const sent = mine.filter(s=>sameId(s.fromId, me.id) && s.status!=="accepted").sort(newest);
+
+  if(!incoming.length && !active.length && !sent.length){
+    box.innerHTML = `<div class="empty">No swaps yet. Open your profile under AI Matches and tap Request Swap on someone.</div>`;
+    return;
+  }
+
+  const row = (who, lines, action)=>`
+    <div class="match-card">
+      <div class="match-left">
+        ${avatarHtml(who.name, 38)}
+        <div class="match-info">
+          <span class="match-name">${escapeHtml(who.name)}</span>
+          <div class="match-reason">${lines.map(l=>`<div>${l}</div>`).join("")}</div>
+        </div>
+      </div>
+      <div class="match-actions">${action}</div>
+    </div>`;
+
+  let html = "";
+  if(incoming.length){
+    html += `<div class="swap-h">Requests for you</div>`;
+    html += incoming.map(s=>{
+      const who = getPerson(s.fromId);
+      if(!who) return "";
+      return row(who, [
+        `Would teach you ${skillsInline(s.give)}`,
+        `You'd teach ${skillsInline(s.get)}`
+      ], `<button class="small" onclick="openReviewModal('${s.id}')">Review request</button>`);
+    }).join("");
+  }
+  if(active.length){
+    html += `<div class="swap-h">Active swaps</div>`;
+    html += active.map(s=>{
+      const isFrom = sameId(s.fromId, me.id);
+      const who = getPerson(isFrom ? s.toId : s.fromId);
+      if(!who) return "";
+      const teach = isFrom ? s.give : s.get, learn = isFrom ? s.get : s.give;
+      const when = s.session
+        ? `${escapeHtml(fmtWhen(s.session))}, ${escapeHtml(modeLabel(s.session.mode))}`
+        : "No session scheduled yet";
+      return row(who, [
+        when,
+        `You teach ${skillsInline(teach)}`,
+        `They teach you ${skillsInline(learn)}`
+      ], `<button class="small" onclick="openSessionModal('${s.id}')">${s.session ? "View session" : "Plan session"}</button>`);
+    }).join("");
+  }
+  if(sent.length){
+    html += `<div class="swap-h">Requests you sent</div>`;
+    html += sent.map(s=>{
+      const who = getPerson(s.toId);
+      if(!who) return "";
+      const pill = s.status==="declined"
+        ? `<span class="status-pill status-declined">Declined</span>`
+        : `<span class="status-pill status-pending">Waiting for reply</span>`;
+      return row(who, [
+        `You'd teach ${skillsInline(s.give)}`,
+        `They'd teach you ${skillsInline(s.get)}`
+      ], pill);
+    }).join("");
+  }
+  box.innerHTML = html;
+}
+
+document.getElementById("btnBell").onclick = ()=> switchTab("swaps");
+
+/* =========================================================
+   RESTORE SESSION (must run last — depends on people/render
+   being defined above)
+   ========================================================= */
+(function checkExistingSession(){
+  try{
+    const raw = sessionStorage.getItem(AUTH_KEY);
+    if(raw){ enterApp(JSON.parse(raw)); }
+  }catch(e){}
+})();
+</script>
+
+</body>
+</html>
